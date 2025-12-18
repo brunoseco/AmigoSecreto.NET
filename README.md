@@ -123,6 +123,15 @@ AmigoSecreto/
 - Sistema stateless (sem banco de dados)
 - IDs temporários apenas para controle de UI
 
+**⚠️ Nota de Segurança para Produção:**
+Esta é uma aplicação de demonstração. Para uso em produção, considere:
+- Implementar autenticação de usuários
+- Adicionar proteção CSRF adequada
+- Implementar rate limiting
+- Adicionar validação de entrada mais robusta
+- Usar HTTPS obrigatório
+- Implementar logging de auditoria
+
 ## 🔌 API da Comtele
 
 Este projeto integra com a API da Comtele para envio de SMS.
@@ -132,6 +141,21 @@ Este projeto integra com a API da Comtele para envio de SMS.
 **Configuração**:
 - O endpoint da API pode ser ajustado em `appsettings.json`
 - Por padrão: `https://api.comtele.com.br/v1/sms`
+- Delay entre requisições: `500ms` (configurável em `Comtele:DelayBetweenRequestsMs`)
+
+**Headers utilizados:**
+- `Authorization: Bearer {apiKey}`
+- `Content-Type: application/json`
+- `Accept: application/json`
+
+**Formato da requisição:**
+```json
+{
+  "Receiver": "5511999999999",
+  "Message": "Sua mensagem aqui",
+  "MessageType": "text"
+}
+```
 
 ## 🎯 Formato do CSV
 

@@ -6,6 +6,7 @@ using System.Text.Json;
 
 namespace AmigoSecreto.Pages;
 
+[IgnoreAntiforgeryToken]
 public class IndexModel : PageModel
 {
     private readonly ComteleSmsService _smsService;
@@ -24,7 +25,6 @@ public class IndexModel : PageModel
     /// <summary>
     /// Validates recipients data
     /// </summary>
-    [HttpPost]
     public IActionResult OnPostValidate([FromBody] ValidateRequest request)
     {
         try
@@ -64,7 +64,6 @@ public class IndexModel : PageModel
     /// <summary>
     /// Generates preview of messages
     /// </summary>
-    [HttpPost]
     public IActionResult OnPostGeneratePreview([FromBody] PreviewRequest request)
     {
         try
@@ -112,7 +111,6 @@ public class IndexModel : PageModel
     /// <summary>
     /// Sends SMS to all recipients
     /// </summary>
-    [HttpPost]
     public async Task<IActionResult> OnPostSendSms([FromBody] SendSmsRequest request)
     {
         try

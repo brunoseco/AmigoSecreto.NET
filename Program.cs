@@ -1,10 +1,12 @@
+using AmigoSecreto.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
 
 // Register HttpClient for Comtele API
-builder.Services.AddHttpClient<Services.ComteleSmsService>();
+builder.Services.AddHttpClient<ComteleSmsService>();
 
 var app = builder.Build();
 

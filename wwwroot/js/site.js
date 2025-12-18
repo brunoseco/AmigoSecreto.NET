@@ -175,7 +175,7 @@ function parseAndLoadContacts(text) {
 
 // Generate temporary ID
 function generateTempId() {
-    return 'r_' + Math.random().toString(36).substr(2, 9);
+    return 'r_' + Math.random().toString(36).substring(2, 11);
 }
 
 // Render recipients table

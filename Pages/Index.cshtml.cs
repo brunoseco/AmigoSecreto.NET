@@ -6,6 +6,11 @@ using System.Text.Json;
 
 namespace AmigoSecreto.Pages;
 
+/// <summary>
+/// Main page for SMS sending functionality.
+/// Note: [IgnoreAntiforgeryToken] is used for simplicity in this demo.
+/// For production use with authentication, implement proper CSRF protection.
+/// </summary>
 [IgnoreAntiforgeryToken]
 public class IndexModel : PageModel
 {

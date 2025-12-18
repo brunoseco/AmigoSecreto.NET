@@ -86,15 +86,16 @@ public class ComteleSmsService
             var jsonContent = JsonSerializer.Serialize(requestBody);
             var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
 
-            // Add API Key to headers (adjust based on Comtele documentation)
-            _httpClient.DefaultRequestHeaders.Clear();
-            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
-            _httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
-
             _logger.LogInformation("Sending SMS to {PhoneNumber}", cleanPhone);
 
+            // Create request message with per-request headers to avoid concurrency issues
+            using var request = new HttpRequestMessage(HttpMethod.Post, apiUrl);
+            request.Content = content;
+            request.Headers.Add("Authorization", $"Bearer {apiKey}");
+            request.Headers.Add("Accept", "application/json");
+
             // Send request
-            var response = await _httpClient.PostAsync(apiUrl, content);
+            var response = await _httpClient.SendAsync(request);
             var responseContent = await response.Content.ReadAsStringAsync();
 
             if (response.IsSuccessStatusCode)
@@ -150,6 +151,9 @@ public class ComteleSmsService
         string messageTemplate)
     {
         var results = new List<SmsSendResult>();
+        
+        // Get delay configuration from settings
+        var delayMs = _configuration.GetValue<int>("Comtele:DelayBetweenRequestsMs", 500);
 
         foreach (var recipient in recipients.Where(r => !r.IgnorarAmigo))
         {
@@ -164,8 +168,8 @@ public class ComteleSmsService
 
             results.Add(result);
 
-            // Add a small delay to avoid rate limiting (adjust as needed)
-            await Task.Delay(500);
+            // Add delay to avoid rate limiting (configurable via appsettings)
+            await Task.Delay(delayMs);
         }
 
         return results;

@@ -198,12 +198,9 @@ function renderRecipientsTable() {
             <table class="table table-hover">
                 <thead>
                     <tr>
-                        <th style="width: 80px;">ID</th>
-                        <th>Nome</th>
-                        <th>Celular</th>
-                        <th>Presente</th>
-                        <th style="width: 200px;">Não pode tirar</th>
-                        <th style="width: 80px;" class="text-center">Ações</th>
+                        <th style="width: 45%;">Contato</th>
+                        <th style="width: 40%;">Não pode tirar</th>
+                        <th style="width: 15%;" class="text-center">Ações</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -223,33 +220,33 @@ function renderRecipientsTable() {
 
         tableHtml += `
             <tr class="${rowClass}" data-id="${recipient.id}">
-                <td><code>${recipient.id}</code></td>
                 <td>
-                    <input type="text" class="form-control form-control-sm" 
-                        value="${escapeHtml(recipient.nome)}" 
-                        onchange="updateRecipient('${recipient.id}', 'nome', this.value); renderRecipientsTable();">
+                    <div class="contact-cell">
+                        <input type="text" class="form-control contact-input" 
+                            value="${escapeHtml(recipient.nome)}" 
+                            placeholder="Nome completo"
+                            onchange="updateRecipient('${recipient.id}', 'nome', this.value); renderRecipientsTable();">
+                        <input type="text" class="form-control contact-input" 
+                            value="${escapeHtml(recipient.celular)}" 
+                            placeholder="(11) 99999-9999"
+                            onchange="updateRecipient('${recipient.id}', 'celular', this.value)">
+                        <input type="text" class="form-control contact-input" 
+                            value="${escapeHtml(recipient.presente)}" 
+                            placeholder="Presente desejado"
+                            onchange="updateRecipient('${recipient.id}', 'presente', this.value)">
+                    </div>
                 </td>
                 <td>
-                    <input type="text" class="form-control form-control-sm" 
-                        value="${escapeHtml(recipient.celular)}" 
-                        onchange="updateRecipient('${recipient.id}', 'celular', this.value)">
-                </td>
-                <td>
-                    <input type="text" class="form-control form-control-sm" 
-                        value="${escapeHtml(recipient.presente)}" 
-                        onchange="updateRecipient('${recipient.id}', 'presente', this.value)">
-                </td>
-                <td>
-                    <select multiple class="form-control form-control-sm" 
-                        style="height: 60px; font-size: 0.85rem;"
+                    <select multiple class="form-control restrictions-select" 
                         onchange="updateRestrictions('${recipient.id}', this)">
                         ${restrictionsOptions}
                     </select>
                 </td>
                 <td class="text-center">
-                    <button type="button" class="btn btn-sm btn-outline-danger" 
-                        onclick="deleteRecipient('${recipient.id}')">
-                        <i class="fas fa-trash"></i>
+                    <button type="button" class="btn btn-outline-danger btn-delete" 
+                        onclick="deleteRecipient('${recipient.id}')"
+                        title="Remover contato">
+                        <i class="fas fa-trash-alt"></i>
                     </button>
                 </td>
             </tr>
@@ -258,10 +255,10 @@ function renderRecipientsTable() {
         if (!recipient.isValid && recipient.validationMessage) {
             tableHtml += `
                 <tr class="${rowClass}">
-                    <td colspan="6">
-                        <small class="text-danger">
-                            <i class="fas fa-exclamation-circle"></i> ${recipient.validationMessage}
-                        </small>
+                    <td colspan="3">
+                        <div class="alert alert-warning mb-0">
+                            <i class="fas fa-exclamation-triangle"></i> ${recipient.validationMessage}
+                        </div>
                     </td>
                 </tr>
             `;
@@ -273,7 +270,7 @@ function renderRecipientsTable() {
             </table>
         </div>
         <div class="mt-3">
-            <span class="badge bg-primary me-2">Total: ${recipients.length}</span>
+            <span class="badge bg-primary me-2"><i class="fas fa-users me-1"></i> Total: ${recipients.length}</span>
             <small class="text-muted">Ctrl+Click para selecionar múltiplas restrições</small>
         </div>
     `;

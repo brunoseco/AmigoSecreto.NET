@@ -16,6 +16,18 @@ Aplicação web moderna e intuitiva que realiza sorteio de Amigo Secreto e envia
 
 ---
 
+## 📸 Demonstração
+
+<div align="center">
+
+![Screenshot do AmigoSecreto.NET](screenshot.png)
+
+*Interface moderna com tema dark glassmorphism inspirado no Google Gemini*
+
+</div>
+
+---
+
 ## ✨ Sobre o Projeto
 
 O **AmigoSecreto.NET** é uma aplicação single-page desenvolvida em ASP.NET Razor Pages que automatiza completamente o processo de organização de Amigo Secreto. Com uma interface moderna e dark mode, o sistema:

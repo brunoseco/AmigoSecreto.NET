@@ -26,9 +26,9 @@ public class SmsRecipient
     public string Presente { get; set; } = string.Empty;
 
     /// <summary>
-    /// When true, SMS will not be sent to this recipient
+    /// List of recipient IDs that this person cannot draw in the secret santa
     /// </summary>
-    public bool IgnorarAmigo { get; set; } = false;
+    public List<string> Restrictions { get; set; } = new();
 
     /// <summary>
     /// Validation status after validation check

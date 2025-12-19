@@ -27,35 +27,40 @@ public class IndexModel : PageModel
     }
 
     /// <summary>
-    /// Performs the secret santa draw ensuring no one draws themselves
+    /// Performs the secret santa draw ensuring no one draws themselves and respecting restrictions
     /// </summary>
     private List<DrawResult> PerformDraw(List<SmsRecipient> participants)
     {
-        var activeParticipants = participants.Where(p => !p.IgnorarAmigo).ToList();
-
-        if (activeParticipants.Count < 2)
+        if (participants.Count < 2)
         {
-            throw new InvalidOperationException("É necessário pelo menos 2 participantes ativos para o sorteio");
+            throw new InvalidOperationException("É necessário pelo menos 2 participantes para o sorteio");
         }
 
-        var givers = activeParticipants.ToList();
-        var receivers = activeParticipants.ToList();
+        var givers = participants.ToList();
+        var receivers = participants.ToList();
         var results = new List<DrawResult>();
         var random = new Random();
-        var maxAttempts = 100;
+        var maxAttempts = 1000;
         var attempt = 0;
 
-        // Try to create a valid draw where no one draws themselves
+        // Try to create a valid draw respecting all restrictions
         while (attempt < maxAttempts)
         {
             results.Clear();
             var availableReceivers = new List<SmsRecipient>(receivers);
             var isValidDraw = true;
 
-            foreach (var giver in givers)
+            // Shuffle givers to randomize draw order
+            var shuffledGivers = givers.OrderBy(x => random.Next()).ToList();
+
+            foreach (var giver in shuffledGivers)
             {
                 // Remove giver from available receivers to avoid self-draw
-                var possibleReceivers = availableReceivers.Where(r => r.Id != giver.Id).ToList();
+                // Also remove anyone in the giver's restrictions list
+                var possibleReceivers = availableReceivers
+                    .Where(r => r.Id != giver.Id) // Can't draw themselves
+                    .Where(r => !giver.Restrictions.Contains(r.Id)) // Can't draw restricted people
+                    .ToList();
 
                 if (possibleReceivers.Count == 0)
                 {
@@ -76,16 +81,17 @@ public class IndexModel : PageModel
                 availableReceivers.Remove(receiver);
             }
 
-            if (isValidDraw)
+            if (isValidDraw && results.Count == participants.Count)
             {
-                _logger.LogInformation("Secret santa draw completed successfully on attempt {Attempt}", attempt + 1);
+                _logger.LogInformation("Secret santa draw completed successfully on attempt {Attempt} with {Count} participants",
+                    attempt + 1, results.Count);
                 return results;
             }
 
             attempt++;
         }
 
-        throw new InvalidOperationException("Não foi possível realizar o sorteio após várias tentativas");
+        throw new InvalidOperationException("Não foi possível realizar o sorteio com as restrições definidas. Tente reduzir o número de restrições.");
     }
 
     /// <summary>
@@ -179,20 +185,6 @@ public class IndexModel : PageModel
                 });
             }
 
-            // Add ignored participants as previews
-            foreach (var ignored in recipients.Where(r => r.IgnorarAmigo))
-            {
-                previews.Add(new SmsPreview
-                {
-                    Id = ignored.Id,
-                    Nome = ignored.Nome,
-                    Celular = ignored.Celular,
-                    MensagemFinal = "Participante ignorado - não receberá SMS",
-                    CharacterCount = 0,
-                    WillBeIgnored = true
-                });
-            }
-
             _logger.LogInformation("Generated {Count} previews with secret santa draw", previews.Count);
             return new JsonResult(new { success = true, previews = previews });
         }
@@ -266,7 +258,6 @@ public class IndexModel : PageModel
 
             var successCount = results.Count(r => r.Success);
             var errorCount = results.Count(r => !r.Success);
-            var ignoredCount = recipients.Count(r => r.IgnorarAmigo);
 
             return new JsonResult(new
             {
@@ -276,8 +267,7 @@ public class IndexModel : PageModel
                 {
                     total = recipients.Count,
                     sent = successCount,
-                    errors = errorCount,
-                    ignored = ignoredCount
+                    errors = errorCount
                 }
             });
         }

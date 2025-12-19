@@ -74,7 +74,7 @@ public class ComteleSmsService
 
             // Prepare API request based on Comtele documentation
             var apiUrl = _configuration["Comtele:ApiUrl"] ?? "https://api.comtele.com.br/v1/sms";
-            
+
             var requestBody = new
             {
                 Receiver = cleanPhone,
@@ -151,11 +151,11 @@ public class ComteleSmsService
         string messageTemplate)
     {
         var results = new List<SmsSendResult>();
-        
+
         // Get delay configuration from settings
         var delayMs = _configuration.GetValue<int>("Comtele:DelayBetweenRequestsMs", 500);
 
-        foreach (var recipient in recipients.Where(r => !r.IgnorarAmigo))
+        foreach (var recipient in recipients)
         {
             // Replace tags in message
             var personalizedMessage = messageTemplate

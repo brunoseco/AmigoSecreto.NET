@@ -146,7 +146,7 @@ function parseAndLoadContacts(text) {
                 nome: parts[0],
                 celular: parts[1],
                 presente: parts[2],
-                ignorarAmigo: false,
+                restrictions: [],
                 isValid: true,
                 validationMessage: null
             });
@@ -202,7 +202,7 @@ function renderRecipientsTable() {
                         <th>Nome</th>
                         <th>Celular</th>
                         <th>Presente</th>
-                        <th style="width: 100px;" class="text-center">Ignorar</th>
+                        <th style="width: 200px;">Não pode tirar</th>
                         <th style="width: 80px;" class="text-center">Ações</th>
                     </tr>
                 </thead>
@@ -211,13 +211,23 @@ function renderRecipientsTable() {
 
     recipients.forEach((recipient, index) => {
         const rowClass = !recipient.isValid ? 'table-warning' : '';
+
+        // Build restrictions dropdown
+        const restrictionsOptions = recipients
+            .filter(r => r.id !== recipient.id)
+            .map(r => {
+                const isRestricted = recipient.restrictions && recipient.restrictions.includes(r.id);
+                return `<option value="${r.id}" ${isRestricted ? 'selected' : ''}>${escapeHtml(r.nome)}</option>`;
+            })
+            .join('');
+
         tableHtml += `
             <tr class="${rowClass}" data-id="${recipient.id}">
                 <td><code>${recipient.id}</code></td>
                 <td>
                     <input type="text" class="form-control form-control-sm" 
                         value="${escapeHtml(recipient.nome)}" 
-                        onchange="updateRecipient('${recipient.id}', 'nome', this.value)">
+                        onchange="updateRecipient('${recipient.id}', 'nome', this.value); renderRecipientsTable();">
                 </td>
                 <td>
                     <input type="text" class="form-control form-control-sm" 
@@ -229,12 +239,12 @@ function renderRecipientsTable() {
                         value="${escapeHtml(recipient.presente)}" 
                         onchange="updateRecipient('${recipient.id}', 'presente', this.value)">
                 </td>
-                <td class="text-center">
-                    <div class="form-check form-switch d-flex justify-content-center">
-                        <input class="form-check-input" type="checkbox" 
-                            ${recipient.ignorarAmigo ? 'checked' : ''} 
-                            onchange="updateRecipient('${recipient.id}', 'ignorarAmigo', this.checked)">
-                    </div>
+                <td>
+                    <select multiple class="form-control form-control-sm" 
+                        style="height: 60px; font-size: 0.85rem;"
+                        onchange="updateRestrictions('${recipient.id}', this)">
+                        ${restrictionsOptions}
+                    </select>
                 </td>
                 <td class="text-center">
                     <button type="button" class="btn btn-sm btn-outline-danger" 
@@ -264,12 +274,21 @@ function renderRecipientsTable() {
         </div>
         <div class="mt-3">
             <span class="badge bg-primary me-2">Total: ${recipients.length}</span>
-            <span class="badge bg-success me-2">Ativos: ${recipients.filter(r => !r.ignorarAmigo).length}</span>
-            <span class="badge bg-secondary">Ignorados: ${recipients.filter(r => r.ignorarAmigo).length}</span>
+            <small class="text-muted">Ctrl+Click para selecionar múltiplas restrições</small>
         </div>
     `;
 
     container.innerHTML = tableHtml;
+}
+
+// Update restrictions for a recipient
+function updateRestrictions(id, selectElement) {
+    const recipient = recipients.find(r => r.id === id);
+    if (recipient) {
+        const selectedOptions = Array.from(selectElement.selectedOptions);
+        recipient.restrictions = selectedOptions.map(opt => opt.value);
+        isValidated = false;
+    }
 }
 
 // Update recipient field
@@ -476,13 +495,12 @@ async function sendSms() {
         return;
     }
 
-    const activeRecipients = recipients.filter(r => !r.ignorarAmigo);
-    if (activeRecipients.length === 0) {
-        showAlert('Não há contatos ativos para enviar', 'warning');
+    if (recipients.length < 2) {
+        showAlert('É necessário pelo menos 2 participantes para o sorteio', 'warning');
         return;
     }
 
-    if (!confirm(`Deseja enviar SMS para ${activeRecipients.length} contato(s)?`)) {
+    if (!confirm(`Deseja enviar SMS para ${recipients.length} contato(s)?`)) {
         return;
     }
 
@@ -531,8 +549,7 @@ function displaySendResults(results, summary) {
             <p class="mb-0">
                 <strong>Total:</strong> ${summary.total} | 
                 <strong class="text-success">Enviados:</strong> ${summary.sent} | 
-                <strong class="text-danger">Erros:</strong> ${summary.errors} | 
-                <strong class="text-secondary">Ignorados:</strong> ${summary.ignored}
+                <strong class="text-danger">Erros:</strong> ${summary.errors}
             </p>
         </div>
         

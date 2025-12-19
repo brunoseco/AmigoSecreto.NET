@@ -1,4 +1,4 @@
-// Comtele SMS Sender - Main JavaScript
+// AmigoSecreto .NET - Main JavaScript
 // Handles all client-side interactions
 
 // Global state
@@ -6,7 +6,7 @@ let recipients = [];
 let isValidated = false;
 
 // Initialize on DOM load
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     initializeEventListeners();
     updateCharCount();
 });
@@ -16,22 +16,22 @@ function initializeEventListeners() {
     // API Key
     document.getElementById('apiKey').addEventListener('input', validateApiKey);
     document.getElementById('toggleApiKey').addEventListener('click', toggleApiKeyVisibility);
-    
+
     // Message Template
     document.getElementById('messageTemplate').addEventListener('input', updateCharCount);
-    
+
     // Contact Input
     document.getElementById('loadCsvBtn').addEventListener('click', loadFromCsv);
     document.getElementById('loadTextBtn').addEventListener('click', loadFromText);
     document.getElementById('csvFile').addEventListener('change', handleFileSelect);
-    
+
     // Table Actions
     document.getElementById('clearTableBtn').addEventListener('click', clearTable);
-    
+
     // Validation and Preview
     document.getElementById('validateBtn').addEventListener('click', validateOnly);
     document.getElementById('previewBtn').addEventListener('click', validateAndPreview);
-    
+
     // Send SMS
     document.getElementById('sendSmsBtn').addEventListener('click', sendSms);
 }
@@ -40,17 +40,17 @@ function initializeEventListeners() {
 function validateApiKey() {
     const apiKey = document.getElementById('apiKey').value.trim();
     const statusDiv = document.getElementById('apiKeyStatus');
-    
+
     if (apiKey.length === 0) {
         statusDiv.innerHTML = '';
         return false;
     }
-    
+
     if (apiKey.length < 10) {
         statusDiv.innerHTML = '<div class="alert alert-warning mt-2"><i class="fas fa-exclamation-triangle"></i> API Key parece muito curta</div>';
         return false;
     }
-    
+
     statusDiv.innerHTML = '<div class="alert alert-success mt-2"><i class="fas fa-check-circle"></i> API Key configurada</div>';
     return true;
 }
@@ -58,7 +58,7 @@ function validateApiKey() {
 function toggleApiKeyVisibility() {
     const apiKeyInput = document.getElementById('apiKey');
     const toggleBtn = document.getElementById('toggleApiKey');
-    
+
     if (apiKeyInput.type === 'password') {
         apiKeyInput.type = 'text';
         toggleBtn.innerHTML = '<i class="fas fa-eye-slash"></i>';
@@ -73,10 +73,10 @@ function updateCharCount() {
     const messageTemplate = document.getElementById('messageTemplate').value;
     const charCount = messageTemplate.length;
     const smsCount = charCount > 0 ? Math.ceil(charCount / 160) : 0;
-    
+
     document.getElementById('charCount').textContent = `${charCount} caracteres`;
     document.getElementById('smsCount').textContent = `${smsCount} SMS`;
-    
+
     const charWarning = document.getElementById('charWarning');
     if (charCount > 160) {
         charWarning.classList.remove('d-none');
@@ -91,7 +91,7 @@ function updateCharCount() {
 function handleFileSelect(event) {
     const file = event.target.files[0];
     if (file) {
-        document.getElementById('loadCsvBtn').innerHTML = 
+        document.getElementById('loadCsvBtn').innerHTML =
             `<i class="fas fa-file-check me-2"></i>${file.name}`;
     }
 }
@@ -100,14 +100,14 @@ function handleFileSelect(event) {
 function loadFromCsv() {
     const fileInput = document.getElementById('csvFile');
     const file = fileInput.files[0];
-    
+
     if (!file) {
         showAlert('Por favor, selecione um arquivo CSV', 'warning');
         return;
     }
-    
+
     const reader = new FileReader();
-    reader.onload = function(e) {
+    reader.onload = function (e) {
         const text = e.target.result;
         parseAndLoadContacts(text);
     };
@@ -117,12 +117,12 @@ function loadFromCsv() {
 // Load contacts from text input
 function loadFromText() {
     const text = document.getElementById('textInput').value.trim();
-    
+
     if (!text) {
         showAlert('Por favor, cole os contatos no formato correto', 'warning');
         return;
     }
-    
+
     parseAndLoadContacts(text);
 }
 
@@ -131,15 +131,15 @@ function parseAndLoadContacts(text) {
     const lines = text.split('\n').filter(line => line.trim() !== '');
     const newRecipients = [];
     let errors = 0;
-    
+
     lines.forEach((line, index) => {
         // Skip header line if it exists
         if (index === 0 && line.toLowerCase().includes('nome') && line.toLowerCase().includes('celular')) {
             return;
         }
-        
+
         const parts = line.split(';').map(p => p.trim());
-        
+
         if (parts.length >= 3) {
             newRecipients.push({
                 id: generateTempId(),
@@ -154,16 +154,16 @@ function parseAndLoadContacts(text) {
             errors++;
         }
     });
-    
+
     if (newRecipients.length > 0) {
         recipients = [...recipients, ...newRecipients];
         renderRecipientsTable();
         showAlert(`${newRecipients.length} contatos carregados com sucesso!${errors > 0 ? ` (${errors} linhas ignoradas)` : ''}`, 'success');
-        
+
         // Enable validation buttons
         document.getElementById('validateBtn').disabled = false;
         document.getElementById('previewBtn').disabled = false;
-        
+
         // Clear inputs
         document.getElementById('csvFile').value = '';
         document.getElementById('textInput').value = '';
@@ -181,7 +181,8 @@ function generateTempId() {
 // Render recipients table
 function renderRecipientsTable() {
     const container = document.getElementById('recipientsTableContainer');
-    
+    console.log('Rendering table with recipients:', recipients);
+
     if (recipients.length === 0) {
         container.innerHTML = `
             <p class="text-muted text-center py-4">
@@ -191,7 +192,7 @@ function renderRecipientsTable() {
         `;
         return;
     }
-    
+
     let tableHtml = `
         <div class="table-responsive">
             <table class="table table-hover">
@@ -207,7 +208,7 @@ function renderRecipientsTable() {
                 </thead>
                 <tbody>
     `;
-    
+
     recipients.forEach((recipient, index) => {
         const rowClass = !recipient.isValid ? 'table-warning' : '';
         tableHtml += `
@@ -243,7 +244,7 @@ function renderRecipientsTable() {
                 </td>
             </tr>
         `;
-        
+
         if (!recipient.isValid && recipient.validationMessage) {
             tableHtml += `
                 <tr class="${rowClass}">
@@ -256,7 +257,7 @@ function renderRecipientsTable() {
             `;
         }
     });
-    
+
     tableHtml += `
                 </tbody>
             </table>
@@ -267,7 +268,7 @@ function renderRecipientsTable() {
             <span class="badge bg-secondary">Ignorados: ${recipients.filter(r => r.ignorarAmigo).length}</span>
         </div>
     `;
-    
+
     container.innerHTML = tableHtml;
 }
 
@@ -286,7 +287,7 @@ function deleteRecipient(id) {
         recipients = recipients.filter(r => r.id !== id);
         renderRecipientsTable();
         isValidated = false;
-        
+
         if (recipients.length === 0) {
             document.getElementById('validateBtn').disabled = true;
             document.getElementById('previewBtn').disabled = true;
@@ -315,9 +316,9 @@ async function validateOnly() {
         showAlert('Nenhum contato para validar', 'warning');
         return;
     }
-    
+
     showLoader('validateBtn', true);
-    
+
     try {
         const response = await fetch('/Index?handler=Validate', {
             method: 'POST',
@@ -326,35 +327,37 @@ async function validateOnly() {
                 'RequestVerificationToken': getAntiForgeryToken()
             },
             body: JSON.stringify({
-                recipients: JSON.stringify(recipients)
+                recipients: recipients
             })
         });
-        
+
         const result = await response.json();
-        
+        console.log('Validation result:', result);
+
         if (result.success) {
             // Update recipients with validation results
             recipients = result.recipients;
+            console.log('Updated recipients:', recipients);
             renderRecipientsTable();
-            
+
             document.getElementById('validationResult').innerHTML = `
                 <div class="alert alert-success">
                     <i class="fas fa-check-circle me-2"></i>${result.message}
                 </div>
             `;
-            
+
             isValidated = true;
             document.getElementById('sendSmsBtn').disabled = false;
         } else {
             recipients = result.recipients || recipients;
             renderRecipientsTable();
-            
+
             document.getElementById('validationResult').innerHTML = `
                 <div class="alert alert-warning">
                     <i class="fas fa-exclamation-triangle me-2"></i>${result.message}
                 </div>
             `;
-            
+
             isValidated = false;
             document.getElementById('sendSmsBtn').disabled = true;
         }
@@ -372,15 +375,15 @@ async function validateAndPreview() {
         showAlert('Nenhum contato para preview', 'warning');
         return;
     }
-    
+
     const messageTemplate = document.getElementById('messageTemplate').value.trim();
     if (!messageTemplate) {
         showAlert('Por favor, insira uma mensagem', 'warning');
         return;
     }
-    
+
     showLoader('previewBtn', true);
-    
+
     try {
         const response = await fetch('/Index?handler=GeneratePreview', {
             method: 'POST',
@@ -389,14 +392,15 @@ async function validateAndPreview() {
                 'RequestVerificationToken': getAntiForgeryToken()
             },
             body: JSON.stringify({
-                recipients: JSON.stringify(recipients),
+                recipients: recipients,
                 messageTemplate: messageTemplate
             })
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
+            console.log('Preview result:', result.previews);
             displayPreview(result.previews);
             isValidated = true;
             document.getElementById('sendSmsBtn').disabled = false;
@@ -414,14 +418,14 @@ async function validateAndPreview() {
 // Display preview
 function displayPreview(previews) {
     const container = document.getElementById('previewContainer');
-    
+
     let html = '<div class="accordion mt-3" id="previewAccordion">';
-    
+
     previews.forEach((preview, index) => {
-        const status = preview.willBeIgnored ? 
-            '<span class="badge bg-secondary">Será Ignorado</span>' : 
+        const status = preview.willBeIgnored ?
+            '<span class="badge bg-secondary">Será Ignorado</span>' :
             '<span class="badge bg-success">Será Enviado</span>';
-        
+
         html += `
             <div class="accordion-item">
                 <h2 class="accordion-header" id="heading${index}">
@@ -448,7 +452,7 @@ function displayPreview(previews) {
             </div>
         `;
     });
-    
+
     html += '</div>';
     container.innerHTML = html;
 }
@@ -459,33 +463,33 @@ async function sendSms() {
         showAlert('Por favor, valide os contatos antes de enviar', 'warning');
         return;
     }
-    
+
     const apiKey = document.getElementById('apiKey').value.trim();
     if (!apiKey) {
         showAlert('Por favor, insira a API Key', 'warning');
         return;
     }
-    
+
     const messageTemplate = document.getElementById('messageTemplate').value.trim();
     if (!messageTemplate) {
         showAlert('Por favor, insira uma mensagem', 'warning');
         return;
     }
-    
+
     const activeRecipients = recipients.filter(r => !r.ignorarAmigo);
     if (activeRecipients.length === 0) {
         showAlert('Não há contatos ativos para enviar', 'warning');
         return;
     }
-    
+
     if (!confirm(`Deseja enviar SMS para ${activeRecipients.length} contato(s)?`)) {
         return;
     }
-    
+
     // Show progress
     document.getElementById('sendProgress').classList.remove('d-none');
     document.getElementById('sendSmsBtn').disabled = true;
-    
+
     try {
         const response = await fetch('/Index?handler=SendSms', {
             method: 'POST',
@@ -495,13 +499,13 @@ async function sendSms() {
             },
             body: JSON.stringify({
                 apiKey: apiKey,
-                recipients: JSON.stringify(recipients),
+                recipients: recipients,
                 messageTemplate: messageTemplate
             })
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
             displaySendResults(result.results, result.summary);
         } else {
@@ -520,7 +524,7 @@ async function sendSms() {
 // Display send results
 function displaySendResults(results, summary) {
     const container = document.getElementById('sendResults');
-    
+
     let html = `
         <div class="alert alert-info mt-3">
             <h5><i class="fas fa-chart-bar me-2"></i>Resumo do Envio</h5>
@@ -544,11 +548,11 @@ function displaySendResults(results, summary) {
                 </thead>
                 <tbody>
     `;
-    
+
     results.forEach(result => {
         const statusClass = result.success ? 'status-enviado' : 'status-erro';
         const statusIcon = result.success ? 'fa-check-circle' : 'fa-times-circle';
-        
+
         html += `
             <tr>
                 <td>${escapeHtml(result.recipientName)}</td>
@@ -559,20 +563,20 @@ function displaySendResults(results, summary) {
                     </span>
                 </td>
                 <td>
-                    ${result.errorMessage ? 
-                        `<small class="text-danger">${escapeHtml(result.errorMessage)}</small>` : 
-                        '<small class="text-success">Enviado com sucesso</small>'}
+                    ${result.errorMessage ?
+                `<small class="text-danger">${escapeHtml(result.errorMessage)}</small>` :
+                '<small class="text-success">Enviado com sucesso</small>'}
                 </td>
             </tr>
         `;
     });
-    
+
     html += `
                 </tbody>
             </table>
         </div>
     `;
-    
+
     container.innerHTML = html;
 }
 
@@ -585,11 +589,11 @@ function showAlert(message, type) {
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     `;
-    
+
     // Display in validation result area
     const resultDiv = document.getElementById('validationResult');
     resultDiv.innerHTML = alertHtml;
-    
+
     // Auto-dismiss after 5 seconds
     setTimeout(() => {
         const alert = resultDiv.querySelector('.alert');
@@ -603,7 +607,7 @@ function showAlert(message, type) {
 function showLoader(buttonId, show) {
     const button = document.getElementById(buttonId);
     const originalHtml = button.innerHTML;
-    
+
     if (show) {
         button.disabled = true;
         button.setAttribute('data-original-html', originalHtml);
@@ -634,12 +638,12 @@ function getAntiForgeryToken() {
     if (tokenInput) {
         return tokenInput.value;
     }
-    
+
     const tokenMeta = document.querySelector('meta[name="__RequestVerificationToken"]');
     if (tokenMeta) {
         return tokenMeta.content;
     }
-    
+
     // If no token found, return empty string (for development)
     return '';
 }

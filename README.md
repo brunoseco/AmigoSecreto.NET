@@ -1,4 +1,4 @@
-# Comtele SMS Sender - Amigo Secreto
+# AmigoSecreto .NET
 
 Sistema moderno de envio de SMS personalizado via API da Comtele, desenvolvido com .NET 8 e Razor Pages.
 

@@ -34,8 +34,8 @@ public class IndexModel : PageModel
     {
         try
         {
-            var recipients = JsonSerializer.Deserialize<List<SmsRecipient>>(request.Recipients);
-            
+            var recipients = request.Recipients;
+
             if (recipients == null || !recipients.Any())
             {
                 return new JsonResult(new { success = false, message = "Nenhum contato para validar" });
@@ -49,6 +49,8 @@ public class IndexModel : PageModel
 
             var invalidCount = recipients.Count(r => !r.IsValid);
             var validCount = recipients.Count(r => r.IsValid);
+
+            _logger.LogInformation("Validation complete: {ValidCount} valid, {InvalidCount} invalid", validCount, invalidCount);
 
             return new JsonResult(new
             {
@@ -73,8 +75,8 @@ public class IndexModel : PageModel
     {
         try
         {
-            var recipients = JsonSerializer.Deserialize<List<SmsRecipient>>(request.Recipients);
-            
+            var recipients = request.Recipients;
+
             if (recipients == null || !recipients.Any())
             {
                 return new JsonResult(new { success = false, message = "Nenhum contato para preview" });
@@ -104,6 +106,7 @@ public class IndexModel : PageModel
                 });
             }
 
+            _logger.LogInformation("Generated {Count} previews", previews.Count);
             return new JsonResult(new { success = true, previews = previews });
         }
         catch (Exception ex)
@@ -120,8 +123,8 @@ public class IndexModel : PageModel
     {
         try
         {
-            var recipients = JsonSerializer.Deserialize<List<SmsRecipient>>(request.Recipients);
-            
+            var recipients = request.Recipients;
+
             if (recipients == null || !recipients.Any())
             {
                 return new JsonResult(new { success = false, message = "Nenhum contato para enviar" });
@@ -172,18 +175,18 @@ public class IndexModel : PageModel
 // Request models for API endpoints
 public class ValidateRequest
 {
-    public string Recipients { get; set; } = string.Empty;
+    public List<SmsRecipient> Recipients { get; set; } = new();
 }
 
 public class PreviewRequest
 {
-    public string Recipients { get; set; } = string.Empty;
+    public List<SmsRecipient> Recipients { get; set; } = new();
     public string MessageTemplate { get; set; } = string.Empty;
 }
 
 public class SendSmsRequest
 {
     public string ApiKey { get; set; } = string.Empty;
-    public string Recipients { get; set; } = string.Empty;
+    public List<SmsRecipient> Recipients { get; set; } = new();
     public string MessageTemplate { get; set; } = string.Empty;
 }

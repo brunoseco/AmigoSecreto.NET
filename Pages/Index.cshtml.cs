@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using AmigoSecreto.Models;
 using AmigoSecreto.Services;
-using System.Text.Json;
 
 namespace AmigoSecreto.Pages;
 
@@ -25,6 +24,68 @@ public class IndexModel : PageModel
 
     public void OnGet()
     {
+    }
+
+    /// <summary>
+    /// Performs the secret santa draw ensuring no one draws themselves
+    /// </summary>
+    private List<DrawResult> PerformDraw(List<SmsRecipient> participants)
+    {
+        var activeParticipants = participants.Where(p => !p.IgnorarAmigo).ToList();
+
+        if (activeParticipants.Count < 2)
+        {
+            throw new InvalidOperationException("É necessário pelo menos 2 participantes ativos para o sorteio");
+        }
+
+        var givers = activeParticipants.ToList();
+        var receivers = activeParticipants.ToList();
+        var results = new List<DrawResult>();
+        var random = new Random();
+        var maxAttempts = 100;
+        var attempt = 0;
+
+        // Try to create a valid draw where no one draws themselves
+        while (attempt < maxAttempts)
+        {
+            results.Clear();
+            var availableReceivers = new List<SmsRecipient>(receivers);
+            var isValidDraw = true;
+
+            foreach (var giver in givers)
+            {
+                // Remove giver from available receivers to avoid self-draw
+                var possibleReceivers = availableReceivers.Where(r => r.Id != giver.Id).ToList();
+
+                if (possibleReceivers.Count == 0)
+                {
+                    isValidDraw = false;
+                    break;
+                }
+
+                // Pick random receiver
+                var receiverIndex = random.Next(possibleReceivers.Count);
+                var receiver = possibleReceivers[receiverIndex];
+
+                results.Add(new DrawResult
+                {
+                    Giver = giver,
+                    Receiver = receiver
+                });
+
+                availableReceivers.Remove(receiver);
+            }
+
+            if (isValidDraw)
+            {
+                _logger.LogInformation("Secret santa draw completed successfully on attempt {Attempt}", attempt + 1);
+                return results;
+            }
+
+            attempt++;
+        }
+
+        throw new InvalidOperationException("Não foi possível realizar o sorteio após várias tentativas");
     }
 
     /// <summary>
@@ -69,7 +130,7 @@ public class IndexModel : PageModel
     }
 
     /// <summary>
-    /// Generates preview of messages
+    /// Generates preview of messages with secret santa draw
     /// </summary>
     public IActionResult OnPostGeneratePreview([FromBody] PreviewRequest request)
     {
@@ -87,26 +148,52 @@ public class IndexModel : PageModel
                 return new JsonResult(new { success = false, message = "Mensagem não pode estar vazia" });
             }
 
+            // Perform secret santa draw
+            List<DrawResult> drawResults;
+            try
+            {
+                drawResults = PerformDraw(recipients);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return new JsonResult(new { success = false, message = ex.Message });
+            }
+
             var previews = new List<SmsPreview>();
 
-            foreach (var recipient in recipients)
+            foreach (var draw in drawResults)
             {
                 var personalizedMessage = request.MessageTemplate
-                    .Replace("{NOME}", recipient.Nome)
-                    .Replace("{PRESENTE}", recipient.Presente);
+                    .Replace("{NOME}", draw.Giver.Nome)
+                    .Replace("{AMIGO}", draw.Receiver.Nome)
+                    .Replace("{PRESENTE}", draw.Receiver.Presente);
 
                 previews.Add(new SmsPreview
                 {
-                    Id = recipient.Id,
-                    Nome = recipient.Nome,
-                    Celular = recipient.Celular,
+                    Id = draw.Giver.Id,
+                    Nome = draw.Giver.Nome,
+                    Celular = draw.Giver.Celular,
                     MensagemFinal = personalizedMessage,
                     CharacterCount = personalizedMessage.Length,
-                    WillBeIgnored = recipient.IgnorarAmigo
+                    WillBeIgnored = false
                 });
             }
 
-            _logger.LogInformation("Generated {Count} previews", previews.Count);
+            // Add ignored participants as previews
+            foreach (var ignored in recipients.Where(r => r.IgnorarAmigo))
+            {
+                previews.Add(new SmsPreview
+                {
+                    Id = ignored.Id,
+                    Nome = ignored.Nome,
+                    Celular = ignored.Celular,
+                    MensagemFinal = "Participante ignorado - não receberá SMS",
+                    CharacterCount = 0,
+                    WillBeIgnored = true
+                });
+            }
+
+            _logger.LogInformation("Generated {Count} previews with secret santa draw", previews.Count);
             return new JsonResult(new { success = true, previews = previews });
         }
         catch (Exception ex)
@@ -117,7 +204,7 @@ public class IndexModel : PageModel
     }
 
     /// <summary>
-    /// Sends SMS to all recipients
+    /// Sends SMS to all recipients with secret santa assignments
     /// </summary>
     public async Task<IActionResult> OnPostSendSms([FromBody] SendSmsRequest request)
     {
@@ -140,12 +227,42 @@ public class IndexModel : PageModel
                 return new JsonResult(new { success = false, message = "Mensagem não pode estar vazia" });
             }
 
-            // Send SMS
-            var results = await _smsService.SendBulkSmsAsync(
-                request.ApiKey,
-                recipients,
-                request.MessageTemplate
-            );
+            // Perform secret santa draw
+            List<DrawResult> drawResults;
+            try
+            {
+                drawResults = PerformDraw(recipients);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return new JsonResult(new { success = false, message = ex.Message });
+            }
+
+            var results = new List<SmsSendResult>();
+
+            // Send SMS to each participant with their secret santa assignment
+            foreach (var draw in drawResults)
+            {
+                var personalizedMessage = request.MessageTemplate
+                    .Replace("{NOME}", draw.Giver.Nome)
+                    .Replace("{AMIGO}", draw.Receiver.Nome)
+                    .Replace("{PRESENTE}", draw.Receiver.Presente);
+
+                var result = await _smsService.SendSmsAsync(
+                    request.ApiKey,
+                    draw.Giver.Celular,
+                    personalizedMessage
+                );
+
+                result.RecipientId = draw.Giver.Id;
+                result.RecipientName = draw.Giver.Nome;
+
+                results.Add(result);
+
+                // Add delay to avoid rate limiting
+                var delayMs = 500; // Could be moved to configuration
+                await Task.Delay(delayMs);
+            }
 
             var successCount = results.Count(r => r.Success);
             var errorCount = results.Count(r => !r.Success);

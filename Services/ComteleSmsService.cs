@@ -73,14 +73,15 @@ public class ComteleSmsService
             var cleanPhone = new string(phoneNumber.Where(char.IsDigit).ToArray());
 
             // Prepare API request based on Comtele documentation
-            var apiUrl = _configuration["Comtele:ApiUrl"] ?? "https://api.comtele.com.br/v1/sms";
+            // URL: https://sms.comtele.com.br/api/v2/send
+            // Auth: auth-key header (not Bearer token)
+            var apiUrl = _configuration["Comtele:ApiUrl"] ?? "https://sms.comtele.com.br/api/v2/send";
 
             var requestBody = new
             {
-                Receiver = cleanPhone,
-                Message = message,
-                // Add other required fields based on Comtele API docs
-                MessageType = "text"
+                Receivers = cleanPhone,  // Campo correto: Receivers (não Receiver)
+                Content = message,        // Campo correto: Content (não Message)
+                Sender = "AmigoSecreto"   // Sender opcional para identificação interna
             };
 
             var jsonContent = JsonSerializer.Serialize(requestBody);
@@ -91,7 +92,7 @@ public class ComteleSmsService
             // Create request message with per-request headers to avoid concurrency issues
             using var request = new HttpRequestMessage(HttpMethod.Post, apiUrl);
             request.Content = content;
-            request.Headers.Add("Authorization", $"Bearer {apiKey}");
+            request.Headers.Add("auth-key", apiKey);  // Header correto: auth-key (não Authorization Bearer)
             request.Headers.Add("Accept", "application/json");
 
             // Send request
